@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Ventilator Weaning Assistant System</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"> </script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <script src="./src//vue-simple-spinner/dist/vue.min.js"></script>
+  <script src="./src//vue-simple-spinner/dist/vue-simple-spinner.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap.min.js"></script>
+  
+  <script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+</head>
+<body>
+
+<style type="text/css">
+    table { page-break-inside:auto }
+    tr    { page-break-inside:avoid; page-break-after:auto; vertical-align: middle; }
+    th    { text-align: center; vertical-align: middle; }
+    .dotRed {
+      height: 20px;
+      width: 20px;
+      background-color: red;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .container {
+      position: relative;
+      top: 10px;
+    }
+    #chart_left {
+      position: absolute;
+      left: 10px;
+      width: 500px;
+      height: 420px;
+    }
+    #chart_right {
+      position: absolute;
+      left: 520px;
+      width: 500px;
+      height: 420px;
+    }
+    #chart_mid {
+      position: absolute;
+      left: 10px;
+      width: 1000px;
+      top: 400px;
+    }
+    #chart_mid_left {
+      position: absolute;
+      left: 10px;
+      top: 40px;
+      width: 500px;
+      height: 150px;
+    }
+    #chart_mid_right {
+      position: absolute;
+      left: 520px;
+      top: 40px;
+      width: 500px;
+      height: 150px;
+    }
+    #chart_low {
+      position: absolute;
+      left: 10px;
+      width: 1000px;
+      top: 420px;
+    }
+    .vis_div {
+      position: relative;
+      height:100px;
+      width:500px;
+    }
+    #dateDropdown {
+      position: absolute;
+      width:100px;
+      right:20px;
+      top:10px;
+    }
+    #today {
+      position: absolute;
+      right:130px;
+      top:3px;
+    }
+    #over_left {
+      position: absolute;
+      width:500px;
+      height:700px;
+      left:10px;
+    }
+    #over_right {
+      position: absolute;
+      width:500px;
+      left:520px;
+      height:700px;
+    }
+    .over_div_half {
+      position: relative;
+      width:500px;
+      height:200px;
+    }
+    #spinner_div {
+      z-index: 991;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      background: #bbb;
+      opacity: 0.5;
+    }
+
+    #spinner {
+      z-index: 992;
+      position: fixed; 
+      top: 45%; left: 45%;
+      margin: auto;
+    }
+
+    #spinner_core{
+      z-index: 993;
+      opacity: 1;
+    }
+</style>
+<div id="spinner_div"></div>
+<div id="spinner">
+  <vue-simple-spinner id="spinner_core" line-size="12" size="100" message="Loading..." line-fg-color="#f0ad4e" line-bg-color="#333" text-fg-color="#666" font-size="20" speed="0.4"></vue-simple-spinner>
+</div>
+
+<div class="container">
+  <h2>CS 6440 Practicum - Ventilator Weaning Assistant System</h2>
+  <p><b>Project Team</b></p>
+  <p>Xu Shi (xshi307), Xiaoyang Xia, (xxia44), Xingdan Wang (xwang3010), Kunming Zhu (kzhu81), Chen Hu (chu93), Manfred Chan (mchan83)</p>
+  <p><b>Project Description</b></p>
+  <p>The <b>Ventilator Weaning Assistant System</b> is a robust web application combining ICU ventilator patient monitioring with timely, evidence based weaning clinical decision support. The system has two weaning recommendation engines built in: one is rule-based and the other uses deep learning. The user interface offers two views: the Population View provides aggregate statistics and demographics, as well as ICU capacity monitoring, while the Clinician View brings up the current status, data, and CDS recommendations for each patient.</p>
+
+  <ul class="nav nav-tabs" style="position: relative">
+    <li class="active"><a data-toggle="tab" href="#home">Population View</a></li>
+    <li><a data-toggle="tab" href="#menu1">Clinician View</a></li>
+    <h5 id="today">Date:</h5>
+    <!-- <button type="button" class="btn btn-default" id="refresh">Refresh</button> -->
+    <select id="dateDropdown"></select>
+  </ul>
+  
+  <div class="tab-content" style="position: relative">
+    
+    <div id="home" class="tab-pane fade in active">
+      <div class="container">
+        <h5></h5>
+        <div id="overview">
+          <div id="over_left">
+            <p>Ventilator Usage</p><div class="over_div_half" id="vent_use_div"></div>
+            <p>Ventilator Time</p><div class="over_div_half" id="vent_time_div"></div>
+          </div>
+          <div id="over_right">
+            <p>Age Distribution</p><div class="over_div_half" id="age_div"></div>
+            <p>Gender Distribution</p><div class="over_div_half" id="gender_div"></div>
+            <p>Race Distribution</p><div class="over_div_half" id="race_div"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="menu1" class="tab-pane fade">
+      <div class="container" id="menu1_container">
+        <table id="example" class="table table-striped table-bordered" style="width:100%">
+          <thead>
+            <tr>
+                <th>Name</th>
+                <th>DOB</th>
+                <th>Monitor</th>
+                <th>Ventilation Status</th>
+                <th>Recommendation (RB)</th>
+                <th>Recommendation (ML)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="modal fade" id="myModal" role="dialog" style="width:1040px; margin:auto;">
+          <div class="modal-dialog" style="width:1040px;">
+          
+            <!-- Modal content-->
+            <div class="modal-content" style="width:1040px;">
+              <div class="modal-header" id="modal-header">
+              </div>
+              <div class="modal-body" id="modal-body" style="width:1040px; height:650px;">
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<script src="./src/js/spinner.js"></script>
+<script type="text/javascript" src="./src/js/feed_data.js"></script>
+
+</body>
+</html>
